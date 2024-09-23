@@ -1,0 +1,96 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "compile diff",
+            "type": "shell",
+            "presentation": {
+                "echo": true,
+                "focus": true,
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "command": "clang",
+            "args": [
+                    "-Wall",
+                    "-ansi",
+                    "-D_POSIX_C_SOURCE=200809L",
+                    "-g",
+                    "../src/folder.c",
+                    "../tools/diff.c",
+                    "-o",
+                    "diff.exe"
+                ]
+        },
+        {
+            "label": "compile ac90",
+            "type": "shell",
+            "presentation": {
+                "echo": true,
+                "focus": true,
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "linux": {
+                "command": "clang",
+                "args": [
+                    "-Wall",
+                    "-ansi",
+                    "-D_POSIX_C_SOURCE=200809L",
+                    "-g",
+                    "../src/buf.c",
+                    "../src/hash.c",
+                    "../src/token.c",
+                    "../src/lexer.c",
+                    "../src/parser.c",
+                    "../src/ast.c",
+                    "../src/txt.c",
+                    "../src/gen1.c",
+                    "../src/ac90.c",
+                    "-o",
+                    "ac90"
+                ]
+            },
+            "windows": {
+                "command": "clang",
+                "args": [
+                    "-Wall",
+                    "-ansi",
+                    "-g",
+                    "-D_CRT_NONSTDC_NO_DEPRECATE=1",
+                    "-D_CRT_SECURE_NO_WARNINGS=1",
+                    "../src/buf.c",
+                    "../src/hash.c",
+                    "../src/ac90.c",
+                    "-o",
+                    "ac90.exe"
+                ]
+            },
+            "options": {
+                "cwd": "${workspaceFolder}/../bin/"
+            },
+            "dependsOrder": "sequence",
+            "dependsOn": []
+        },
+        {
+            "label": "all",
+            "type": "shell",
+            "presentation": {
+                "echo": true,
+                "focus": true,
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "command": "echo done",
+            "args": [],
+            "options": {
+                "cwd": "${workspaceFolder}/../bin"
+            },
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "compile ac90",
+                "compile diff"
+            ]
+        }
+    ]
+}

@@ -1,0 +1,22 @@
+{
+	"folders": [
+		{
+			"path": "tools"
+		}
+		,
+		{
+			"path": "src"
+		}
+
+	],
+	"settings": {
+		"files.associations": {
+			"buf.h": "c",
+			"cmath": "cpp",
+			"parser.h": "c",
+			"xutility": "c",
+			"type_traits": "c",
+			"xtr1common": "c"
+		}
+	}
+}
