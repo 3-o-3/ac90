@@ -49,6 +49,14 @@ int parser__print_at(struct parser *self, int at)
 
 */
 
+int parser__clear(struct parser *self)
+{
+	if (self->status > 0) {
+		self->status = 0;
+	}
+	return 0;
+}
+
 int parser__error(struct parser *self, const char *txt, int mode)
 {
 	if (self->status < 0) {
@@ -152,7 +160,7 @@ int parser__parse(struct parser *self)
 
 int parser__eat(struct parser *self)
 {
-//	printf(" %s ", lexer__get_value(self->lexer, self->tk));
+	printf("EAT: %s\n", self->tk->value);
 	self->tk = self->tk->next;
 	return 0;
 }

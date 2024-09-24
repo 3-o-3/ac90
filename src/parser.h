@@ -27,6 +27,7 @@ struct parser *parser__new(struct lexer *lexer);
 int parser__dispose(struct parser *parser);
 int parser__parse(struct parser *parser);
 int parser__is_loop(struct parser *parser);
+int parser__clear(struct parser *parser);
 int parser__error(struct parser *parser, const char *txt, int mode);
 int parser__pop(struct parser *parser);
 int parser__push(struct parser *parser, int(*func)(struct parser*,int), int mo);

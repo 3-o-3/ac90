@@ -2,6 +2,42 @@
 #include "token.h"
 #include "ast.h"
 
+static int identifier(struct parser *self, int mode)
+{
+	if (self->tk->type == token__IDENTIFIER) {
+		parser__eat(self);
+		return 0;
+	}
+	parser__error(self, "identifier expected", mode);
+	return -1;
+}
+
+/*
+constant:		integer_constant | character_constant |
+			floating_constant | enumeration_constant
+*/
+static int constant(struct parser *self, int mode) 
+{
+	switch (self->tk->type) {
+	case token__INTEGER_CONSTANT:
+	case token__LONG_CONSTANT:
+	case token__UNSIGNED_CONSTANT:
+	case token__UNSIGNED_LONG_CONSTANT:
+	case token__FLOATING_CONSTANT:
+	case token__LONG_DOUBLE_CONSTANT:
+	case token__FLOAT_CONSTANT:
+	case token__CHARACTER_CONSTANT:
+	case token__ENUMERATION_CONSTANT:
+		parser__eat(self);
+		return 0;
+	case token__IDENTIFIER:
+		return enumeration_constant(self, mode);
+	}
+	parser__error(self, "constant expected", mode);
+	return -1;
+}
+
+
 /*
 translation_unit:	external_declaration*
 */
@@ -14,7 +50,6 @@ int translation_unit_1(struct parser *self, int mode)
 		self->status = 0;
 		return 0;
 	}
-	printf("%s\n", self->tk->value);
 	/* push again ourself, so we create a loop until it fails */
 	parser__push(self, translation_unit_1, 0);
 	parser__push(self, external_declaration, 1);
@@ -24,7 +59,7 @@ int translation_unit_1(struct parser *self, int mode)
 int translation_unit(struct parser *self, int mode)
 {
 	if (self->tk->type != token__ROOT) {
-		parser__error(self, "Bad input", 0);
+		parser__error(self, "PANIC: bad input", 0);
 		return -1;
 	}
 	parser__eat(self);
@@ -41,10 +76,8 @@ static int declaration(struct parser *self, int mode);
 
 static int external_declaration_1(struct parser *self, int mode)
 {
-	if (self->status > 0) {
-		self->status = 0;
-		parser__push(self, declaration, mode);
-	}
+	parser__clear(self);
+	parser__push(self, declaration, mode);
 	return 0;
 }
 
@@ -79,6 +112,7 @@ declaration:		declaration_specifiers init_declaration_list? ";"
 static int init_declaration_list(struct parser *self, int mode);
 static int declaration_1(struct parser *self, int mode)
 {
+	parser__clear(self);
 	if (self->tk->type != token__SEMI) {
 		parser__error(self, "missing ';'", mode);
 	}
@@ -258,9 +292,18 @@ jump_statement:		("goto" identifier ";") |
 			("break" ";") |
 			("return" expression ";")
 */
+
+
+
+/* ********** EXPRESSION ************/
+
 /*
 expression:		assignment_expression ( "," assignment_expression)* 
 */
+static int expression(struct parser *self, int mode) 
+{
+}
+
 /*
 assignment_expression:	conditional_expression |
 			((unary_expression assignment_operator)* 
@@ -344,20 +387,47 @@ postfix_expression:	primary_expression |
 primary_expression:	identifier | constant | string_literal | 
 			("(" expression ")")
 */
+static int primary_expression_1(struct parser *self, int mode) 
+{
+	if (self->tk->type == token__RPAREN) {
+		parser__eat(self);
+		return 0;
+	}
+	parser__error(self, "')' expected", 0);
+	return -1;
+}
+
+static int primary_expression(struct parser *self, int mode) 
+{
+	switch (self->tk->type) {
+	case token__INTEGER_CONSTANT:
+	case token__LONG_CONSTANT:
+	case token__UNSIGNED_CONSTANT:
+	case token__UNSIGNED_LONG_CONSTANT:
+	case token__FLOATING_CONSTANT:
+	case token__LONG_DOUBLE_CONSTANT:
+	case token__FLOAT_CONSTANT:
+	case token__CHARACTER_CONSTANT:
+	case token__STRING_LITERAL:
+		parser__eat(self);
+		return 0;
+	case token__ENUMERATION_CONSTANT:
+	case token__IDENTIFIER:
+		parser__eat(self);
+		return 0;
+	case token__LPAREN:
+		parser__eat(self);
+		parser__push(self, primary_expression_1, 0);
+		parser__push(self, expression, 0);
+		return 0;
+	}
+	parser__error(self, "primary expression expected", mode);
+	return -1;
+}
+
+
+
 /*
 argument_expression_list:	assignment_expression 
 				( "," assignment_expression)*
 */
-/*
-constant:		integer_constant | character_constant |
-			floating_constant | enumeration_constant
-*/
-/*
-//integer_constant:
-//character_constant:
-//floating_constant: 
-//enumeration_constant: 
-//string_literal:
-//identifier:
-*/
-
