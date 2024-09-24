@@ -1,0 +1,21 @@
+#******************************************************************************
+# @file             Makefile.wcd
+# 
+# Produce MSDOS executables links with PDPCLIB created by makefile.wcd
+#******************************************************************************
+CC=wcl
+COPTS=-ecc -q -w -c -ml -zl -D__MSDOS__ -D__PDOS__ -fpi87 -s -zdp -zu -I. -I..\pdos\pdpclib
+
+all: clean xar.exe
+
+xar.exe: append.obj ar.obj conv.obj delete.obj display.obj extract.obj lib.obj ranlib,obj replace.obj report.obj
+  wlink File ar.obj Name xar.exe Form dos Library temp.lib,..\pdos\pdpclib\watcom.lib Option quiet,map
+
+.c.obj:
+  $(CC) $(COPTS) $<
+  wlib -b -q temp +$*.obj
+
+clean:
+  rm -f *.obj
+  rm -f xar.exe
+  rm -f temp.lib
