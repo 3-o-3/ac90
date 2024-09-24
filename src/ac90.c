@@ -3,15 +3,16 @@
 #include "token.h"
 #include "lexer.h"
 #include "parser.h"
+#include "preproc.h"
 #include "ast.h"
 struct pgen
 {
-	struct buf *in;
 	FILE *out;
 	int line;
 	char *ptr;
 	int end_of_rule;
 	struct lexer *lexer;
+	struct preproc *preproc;
 	struct parser *parser;
 	struct ast *ast;
 };
@@ -27,12 +28,11 @@ int main(int argc, char *argv[])
 		exit(-1);
 	}
 	p.line = 1;
-	p.in = buf__new((char *)argv[1], 1024);
 	/*p.out = buf__new((char *)argv[2], 1024);*/
 	p.out = fopen(argv[2], "wb");
-	buf__read(p.in);
-	p.lexer = lexer__new();
-	if (lexer__tokenize(p.lexer, p.in, 0, p.in->name)) {
+	p.preproc = preproc__new();
+	p.lexer = lexer__new(p.preproc);
+	if (lexer__tokenize(p.lexer, NULL, 0, argv[1])) {
 
 		fprintf(stderr, "Error at line(%d) bad token  in file %s\n", 
 				p.lexer->line + 1, argv[1]);
@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
 	/*buf__write(p.out);*/
 	parser__dispose(p.parser);
 	lexer__dispose(p.lexer);
-	buf__dispose(p.in);
+	preproc__dispose(p.preproc);
 	/*buf__dispose(p.out);*/
 	return 0;
 }

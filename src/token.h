@@ -104,15 +104,22 @@ enum
 	token__DEFINE = 0x728,
 	token__INCLUDE = 0x729,
 	token__REGISTER = 0x72A,
+	token__DEFINE_FUNC = 0x72B,
+	token__ENDIF = 0x72C,
 
 	token__PRODUCTION = 0x730,
 	token__CONSTANT = 0x731,
 
 	token__STRING_LITERAL = 0x732,
 	token__CHARACTER_CONSTANT = 0x733,
-	token__INTEGER_CONSTANT = 0x734,
-	token__FLOATING_CONSTANT = 0x735,
 	token__ENUMERATION_CONSTANT = 0x736,
+	token__INTEGER_CONSTANT = 0x740,
+	token__LONG_CONSTANT = 0x741,
+	token__UNSIGNED_CONSTANT = 0x742,
+	token__UNSIGNED_LONG_CONSTANT = 0x743,
+	token__FLOATING_CONSTANT = 0x780,
+	token__LONG_DOUBLE_CONSTANT = 0x781,
+	token__FLOAT_CONSTANT = 0x784,
 	
 	token__END_OF_FILE = 0x777,
 

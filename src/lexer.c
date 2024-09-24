@@ -34,11 +34,13 @@
 #include "lexer.h"
 #include "token.h"
 #include "buf.h"
+#include "hash.h"
+#include "preproc.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 
-struct lexer *lexer__new(void)
+struct lexer *lexer__new(struct preproc *pre)
 {
 	struct lexer *self;
 	self = malloc(sizeof(*self));
@@ -47,9 +49,11 @@ struct lexer *lexer__new(void)
 	self->file = "";
 	self->line = 0;
 	self->offset = 0;
-	self->root = token__new(token__ROOT, self->ptr);
+	self->root = token__new(token__ROOT, "<root>");
 	self->current = self->root;
 	self->tmp = buf__new("tmp", 80);
+	self->symbols = hash_table__new(2048);
+	self->pre = pre;
 	return self;
 }
 
@@ -62,6 +66,7 @@ int lexer__dispose(struct lexer *self)
 		token__dispose(t);
 		t = n;
 	}
+	hash_table__dispose(self->symbols);
 	free(self);
 	return 0;
 }
@@ -82,6 +87,29 @@ int lexer__error(struct lexer *self, char *txt)
 }
 
 
+int lexer__add_token(struct lexer *self, int type, char *begin, char *end)
+{
+	struct hash_elem *he;
+	int hash;
+	if (type == token__HASHTAG && self->newline) {
+		if (!self->preb) {
+			self->preb = self->current;
+		}
+	} else if (!self->preb && self->pre->skip) {
+		self->newline = 0;
+		return -1;
+	}
+	self->newline = 0;
+	hash = hash_elem__hash(begin, end - begin);
+	he = hash_table__get(self->symbols, hash, begin, end - begin);
+	if (!he) {
+		he = hash_elem__new(begin, end - begin);
+	}
+	self->current->next = token__new(type, he->name);
+	self->ptr = end;
+	self->current = self->current->next;
+	return 0;
+}
 /*
  * A12.1 Trigraph sequences
  */
@@ -183,9 +211,18 @@ int lexer__whitespace(struct lexer *self)
 	{
 		if (*p == '\n')
 		{
+			if (self->preb) {
+				preproc__add_line(self->pre, self->preb);
+				self->current = self->preb;
+				self->preb = NULL;
+			} else {
+				preproc__expand(self->pre, self->root, 
+						&self->current);
+			}
 			self->ptr = p + 1;
 			lexer__trigraphs(self);
 			self->line++;
+			self->newline = 1;
 		}
 		p++;
 	}
@@ -226,8 +263,66 @@ int lexer__whitespace(struct lexer *self)
 
 int lexer__constant(struct lexer *self)
 {
+	char *p;
+	char *b;
+	int t = token__INTEGER_CONSTANT; /* int */
+
+	p = self->ptr;
+	b = p;
+	if (*p == '0' && (p[1] == 'x' || p[1] == 'X')) {
+		p += 2;
+		while ((*p >= '0' && *p <= '9') ||
+			(*p >= 'a' && *p <= 'f') ||
+			(*p >= 'A' && *p <= 'F')) 
+		{
+			p++;
+		}
+	} else {
+		/* A2.5.3 Floating constants */
+		/* integer part */
+		while (*p >= '0' && *p <= '9') {
+			p++;
+		}
+		/* decimal point */
+		if (*p == '.' || *p == 'e' || *p == 'E') {
+			t = token__FLOATING_CONSTANT; /* double */
+			if (*p == '.') {
+				p++;
+				/* fraction part */
+				while (*p >= '0' && *p <= '9') {
+					p++;
+				}
+			}
+			/* e or E */
+			if (*p == 'e' || *p == 'E') {
+				p++;
+				/* exponent sign */
+				if (*p == '+' || *p == '-') {
+					p++;
+				}
+				/* exponent */
+				while (*p >= '0' && *p <= '9') {
+					p++;
+				}
+			}
+			if (*p == 'f' || *p == 'F') {
+				t |= 0x4; /* make it float */
+				p++;
+			}
+		}
+	}
+	if (t == token__INTEGER_CONSTANT && (*p == 'u' || *p == 'U')) {
+		t |= 0x2; /* make it unsigned */
+		p++;
+	}
+	if (*p == 'l' || *p == 'L') {
+		t |= 0x1; /* make it long or long double*/
+		p++;
+	}
+	lexer__add_token(self, t, b, p);
 	return 0;
 }
+
 
 /* A2.6 String literals */
 int lexer__string_literal(struct lexer *self, int separator)
@@ -306,10 +401,8 @@ int lexer__string_literal(struct lexer *self, int separator)
 	}
 	if (p[0] == separator)
 	{
-		self->current->next = token__new(t, b);
-		self->current = self->current->next;
 		p++;
-		self->ptr = p;
+		lexer__add_token(self, t, b, p);
 		return 0;
 	}
 	return -1;
@@ -365,7 +458,11 @@ int lexer__identifier(struct lexer *self, char *b, char *p)
 			if (b[1] == 'o' && !strncmp("double", b, 6)) {
 				t = token__DOUBLE;
 			} else if (b[1] == 'e' && !strncmp("define", b, 6)) {
-				t = token__DEFINE;
+				if (*p == '(') {
+					t = token__DEFINE_FUNC;
+				} else {
+					t = token__DEFINE;
+				}
 			}
 		} else if (l == 7) {
 			if (!strncmp("defined", b, 7)) {
@@ -387,8 +484,10 @@ int lexer__identifier(struct lexer *self, char *b, char *p)
 				t = token__EXTERN;
 			}
 		} else if (l == 5) {
-			if (!strncmp("error", b, 5)) {
+			if (b[1] == 'r' && !strncmp("error", b, 5)) {
 				t = token__ERROR;
+			} else if (b[1] == 'n' && !strncmp("endif", b, 5)) {
+				t = token__ENDIF;
 			}
 		}
 		break;
@@ -530,9 +629,7 @@ int lexer__identifier(struct lexer *self, char *b, char *p)
 		break;
 	
 	}
-	self->current->next = token__new(t, b);
-	self->current = self->current->next;
-	self->ptr = p;
+	lexer__add_token(self, t, b, p);
 	return 0;
 }
 
@@ -684,11 +781,11 @@ int lexer__next(struct lexer *self)
 		break;
 	case '#':
 		t = token__HASHTAG;
-		p++;
-		if (*p == '#') {
+		if (p[1] == '#') {
 			t = token__DOUBLEHASH;
 			p++;
 		}
+		p++;
 		break;
 	case ':':
 		t = token__COLON;
@@ -780,27 +877,36 @@ int lexer__next(struct lexer *self)
 	default:
 		return -1;
 	}
-	self->current->next = token__new(t, b);
-	self->current = self->current->next;
-	self->ptr = p;
+	lexer__add_token(self, t, b, p);
 	return 0;
 }
 
 int lexer__tokenize(struct lexer *self, struct buf* buf, int offset, char *file)
 {
+	struct buf *bf;
+	int ret = 0;
+	bf = buf__new(file, 4096);
+	buf__read(bf);
+	
+	self->newline = 1;
 	self->offset = offset;
-	self->buf = buf;
-	self->ptr = buf->buf;
+	self->buf = bf;
+	self->ptr = bf->buf;
 	self->file = file;
 	self->line = 0;
-
+	self->preb = NULL;
+	preproc__begin(self->pre, file);
 	lexer__trigraphs(self);
 	while (!lexer__next(self)) {
 	}
 	if (self->ptr[0] != '\0') {
-		return -1;
+		ret = -1;
 	}
-	return 0;
+	lexer__add_token(self, token__END_OF_FILE, self->ptr, self->ptr);
+	preproc__expand(self->pre, self->root, &self->current);
+	preproc__end(self->pre, file);
+	buf__dispose(bf);
+	return ret;
 }
 
 int lexer__get_line_pos(struct lexer *self, struct token *tk)
@@ -808,6 +914,10 @@ int lexer__get_line_pos(struct lexer *self, struct token *tk)
 	char *p;
 	char *b;
 	int l = 1;
+	// FIXME
+	if (!tk) {
+		return -1;
+	}
 	b = self->buf->buf;
 	p = tk->value;	
 	while (b < p) {
@@ -821,53 +931,10 @@ int lexer__get_line_pos(struct lexer *self, struct token *tk)
 
 char *lexer__get_value(struct lexer *self, struct token *tk)
 {
-	char *p;
-	int l;
-
 	if (!tk) {
 		return "PANIC!";
 	}
-	buf__clear(self->tmp);
-
-	switch(tk->type) {
-	case token__END_OF_FILE: p = "EOF"; break;
-	case token__MUL: p = "*"; break;
-	case token__QMARK: p = "?"; break;
-	case token__PIPE: p = "|"; break;
-	case token__LPAREN: p = "("; break;
-	case token__RPAREN: p = ")"; break;
-	case token__COLON: p = ":"; break;
-	case token__SEMI: p = ";"; break;
-	case token__EQUAL: p = "="; break;
-	default:
-		p = tk->value;	
-	}
-	l = 0;
-	while (p[l]) {
-		if (p[l] == '\\' && p[l+1] != '\0') {
-			l++;
-		} else if (p[0] == '"') {
-		       	if (l > 0 && p[l] == '"') {
-				l++;
-				break;
-			}
-		} else if (p[0] == '\'') {
-		       	if (l > 0 && p[l] == '\'') {
-				l++;
-				break;
-			}
-		} else if ((p[l] >= '0' && p[l] <= '9') ||
-			  (p[l] >= 'a' && p[l] <= 'z') ||
-			  (p[l] >= 'A' && p[l] <= 'Z'))
-		{
-			/* dummy */
-		} else {
-			break;
-		}	
-		l++;
-	}
-	buf__append_txt(self->tmp, p, l);
-	return buf__getstr(self->tmp);
+	return tk->value;
 }
 
 

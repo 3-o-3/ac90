@@ -8,13 +8,18 @@ struct lexer
 	char *ptr;
 	struct token *root;
 	struct token *current;
+	struct token *preb;
 	int line;
 	int offset;
 	char *file;
-	struct buf* tmp;
+	struct buf *tmp;
+	struct hash_table *symbols;
+	struct preproc *pre;
+	int newline;
+
 };
 
-struct lexer *lexer__new();
+struct lexer *lexer__new(struct preproc *p);
 int lexer__dispose(struct lexer *lexer);
 int lexer__tokenize(struct lexer *lexer, struct buf *buf, 
 		int offset, char *file);
