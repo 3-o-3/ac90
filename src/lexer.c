@@ -226,35 +226,87 @@ int lexer__whitespace(struct lexer *self)
 
 int lexer__constant(struct lexer *self)
 {
+	return 0;
+}
+
+/* A2.6 String literals */
+int lexer__string_literal(struct lexer *self, int separator)
+{
 	char *p;
 	char *b;
+	int t;
+
+	if (separator == '"') {
+		t = token__STRING_LITERAL;
+	} else {
+		t = token__CHARACTER_CONSTANT;
+	}
 	p = self->ptr;
-	if (*p != '"')
+	b = p;
+	if (*p == 'L') {
+		p++;
+	}
+	if (*p != separator)
 	{
 		return -1;
 	}
-	b = p;
 	p++;
-	while (*p)
+	while (*p && *p != '\n' && *p != '\r')
 	{
-		if (*p == '"')
+		if (*p == separator)
 		{
 			break;
 		}
+		/* A2.5.2 Character constants */
 		if (*p == '\\')
 		{
-			p++;
+			switch (p[1]) {
+			case 'n':
+			case 't':
+			case 'v':
+			case 'b':
+			case 'r':
+			case 'f':
+			case 'a':
+			case '\\':
+			case '\'':
+			case '"':
+				p++;
+				break;
+			case 'x':
+				if ((p[2] >= '0' && p[2] <= '9') ||
+					(p[2] >= 'A' && p[2] <= 'F') || 
+					(p[2] >= 'a' && p[2] <= 'f')) 
+				{
+					p += 2;
+					while ((p[1] >= '0' && p[1] <= '9') ||
+						(p[1] >= 'A' && p[1] <= 'F') || 
+						(p[1] >= 'a' && p[1] <= 'f')) 
+					{
+						p++;
+					}
+				}
+				break;
+			default:
+				if (p[2] >= '0' && p[2] <= '7') {
+					p += 2;
+					if (p[1] >= '0' && p[1] <= '7') {
+						p++;
+						if (p[1] >= '0' && 
+							p[1] <= '7') 
+						{
+							p++;
+						}
+					}
+				}
+				break;		
+			}
 		}
 		p++;
 	}
-	if (p[0] == '"')
+	if (p[0] == separator)
 	{
-		if (p[1] == '=')
-		{
-			self->current->next = token__new(token__END_OF_RULE, b);
-			self->current = self->current->next;
-		}
-		self->current->next = token__new(token__CONSTANT, b);
+		self->current->next = token__new(t, b);
 		self->current = self->current->next;
 		p++;
 		self->ptr = p;
@@ -484,15 +536,6 @@ int lexer__identifier(struct lexer *self, char *b, char *p)
 	return 0;
 }
 
-int lexer__string_literal(struct lexer *self)
-{
-	return 0;
-}
-
-int lexer__character_constant(struct lexer *self)
-{
-	return 0;
-}
 
 int lexer__next(struct lexer *self)
 {
@@ -505,7 +548,8 @@ int lexer__next(struct lexer *self)
 
 	p = self->ptr;
 	b = p;
-	if (*p == '_' || (*p >= 'a' && *p <= 'z') || (*p >= 'A' && *p <= 'Z'))
+	if ((*p == '_' || (*p >= 'a' && *p <= 'z') || (*p >= 'A' && *p <= 'Z'))
+			&& !(*p == 'L' && (p[1] == '\'' || p[1] == '"')))
 	{
 		n = 1;
 		p++;
@@ -517,15 +561,17 @@ int lexer__next(struct lexer *self)
 		}
 		if (n > 31) {
 			lexer__warning(self, "-Widentifier-length", 
-			   "only 31 characters are significant in identifiers");
+			   "only 31 characters may be "
+			   "significant in identifiers");
 		}
 		return lexer__identifier(self, b, p);
 	} 
 	switch (*p) {
+	case 'L':
+		return lexer__string_literal(self, p[1]);
 	case '"':
-		return lexer__string_literal(self);
 	case '\'':
-		return lexer__character_constant(self);
+		return lexer__string_literal(self, *p);
 	case '.':
 		if (p[1] >= '0' && p[1] <= '9') {
 			return lexer__constant(self);
@@ -785,7 +831,6 @@ char *lexer__get_value(struct lexer *self, struct token *tk)
 
 	switch(tk->type) {
 	case token__END_OF_FILE: p = "EOF"; break;
-	case token__END_OF_RULE: p = "EOR"; break;
 	case token__MUL: p = "*"; break;
 	case token__QMARK: p = "?"; break;
 	case token__PIPE: p = "|"; break;
