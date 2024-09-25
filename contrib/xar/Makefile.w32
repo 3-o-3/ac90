@@ -1,0 +1,19 @@
+#******************************************************************************
+# @file             Makefile.w32
+#******************************************************************************
+SRCDIR              ?=  $(CURDIR)
+VPATH               :=  $(SRCDIR)
+
+CC                  :=  gcc
+CFLAGS              :=  -D_FILE_OFFSET_BITS=64 -O2 -Wall -Werror -Wextra -ansi -m32 -pedantic -std=c90
+
+CSRC                :=  append.c ar.c conv.c delete.c display.c extract.c lib.c ranlib.c replace.c report.c
+
+all: xar.exe
+
+clean:
+	if exist xar.exe ( del /q xar.exe )
+	if exist xar ( del /q xar )
+
+xar.exe: $(CSRC)
+	$(CC) $(CFLAGS) -o $@ $^

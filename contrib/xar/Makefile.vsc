@@ -1,0 +1,17 @@
+CC=cl
+LD=cl
+
+COPTS=-c -nologo -O2 -I.
+COBJ=append.obj ar.obj conv.obj delete.obj display.obj \
+  extract.obj lib.obj ranlib.obj replace.obj report.obj
+
+all: clean xar.exe
+
+xar.exe: $(COBJ)
+  $(LD) -nologo -Fexar.exe $(COBJ)
+
+.c.obj:
+  $(CC) $(COPTS) -Fo$@ $<
+
+clean:
+  rm -f *.obj xar.exe

@@ -1,0 +1,29 @@
+# This builds the OS/2 32-bit version
+# You will need to build PDPCLIB with the USE_MEMMGR
+# option because this program does lots of small memory allocations
+
+AS=pdas --oformat coff
+CC=gccwin
+LD=pdld
+
+COPTS=-S -O2 -fno-common -ansi -I. -I../pdos/pdpclib \
+    -U__WIN32__ -D__NOBIVA__ -D__PDOS__ \
+    -D__HAVESYS__=_System -D__OS2__ -D__32BIT__
+LDFLAGS=-s --no-insert-timestamp -nostdlib --oformat lx \
+    --stub ../pdos/pdpclib/needpdos.exe
+
+COBJ=append.obj ar.obj conv.obj delete.obj display.obj extract.obj \
+    lib.obj ranlib.obj replace.obj report.obj
+
+all: clean xar.exe
+
+xar.exe: $(COBJ)
+  $(LD) $(LDFLAGS) -o xar.exe ../pdos/pdpclib/os2strt.obj $(COBJ) ../pdos/pdpclib/pdpos2.lib ../pdos/pdpclib/os2.lib
+
+.c.obj:
+  $(CC) $(COPTS) $<
+  $(AS) -o $@ $*.s
+  rm -f $*.s
+
+clean:
+  rm -f *.obj xar.exe

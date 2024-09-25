@@ -1,0 +1,20 @@
+AS=pdas --oformat coff
+CC=gccwin
+LD=pdld
+
+COPTS=-S -O2 -fno-common -ansi -I. -I../pdos/pdpclib -D__WIN32__ -D__NOBIVA__ -D__PDOS__
+COBJ=append.obj ar.obj conv.obj delete.obj display.obj extract.obj \
+    lib.obj ranlib.obj replace.obj report.obj
+
+all: clean xar.exe
+
+xar.exe: $(COBJ)
+  $(LD) -s -nostdlib --no-insert-timestamp -o xar.exe ../pdos/pdpclib/w32start.obj $(COBJ) ../pdos/pdpclib/msvcrt.lib
+
+.c.obj:
+  $(CC) $(COPTS) $<
+  $(AS) -o $@ $*.s
+  rm -f $*.s
+
+clean:
+  rm -f *.o xar.exe
