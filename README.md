@@ -24,9 +24,7 @@ By Brian W. Kernighan / Dennis M. Ritchie
 
 ISBN 0-13-110362-8
 
-
-
-
+***
 
 PRACTICAL COMPILER CONSTRUCTION (2nd Ed.)
 
@@ -34,8 +32,7 @@ By Nils M. Holm
 
 (Lulu Press, Inc)
 
-
-
+***
 
 ### Some links
 
