@@ -147,7 +147,10 @@ static void use_option (int option_index, char *arg)
                 ld_state->oformat = LD_OFORMAT_COFF;
             } else if (strcmp (arg, "elf") == 0) {
                 ld_state->oformat = LD_OFORMAT_ELF;
-            } else if (strcmp (arg, "lx") == 0) {
+                //ld_state->target_machine = LD_TARGET_MACHINE_I386;
+		//ld_state->use_custom_base_address = 1;
+		//ld_state->base_address = elf_get_base_address();
+	    } else if (strcmp (arg, "lx") == 0) {
                 ld_state->oformat = LD_OFORMAT_LX;
             } else if (strcmp (arg, "mvs") == 0) {
                 ld_state->oformat = LD_OFORMAT_MVS;

@@ -30,6 +30,11 @@ static int generate_section_headers = 1;
  */
 static long size_of_headers = SIZEOF_struct_Elf32_Ehdr_file;
 
+address_type elf_get_base_address (void)
+{
+	return 0x08049000 - 0x1000;
+}
+
 static Elf32_Word translate_section_flags_to_p_flags (flag_int flags)
 {
     Elf32_Word p_flags = 0;
@@ -532,6 +537,7 @@ static void translate_relocation (struct reloc_entry *reloc,
 
 bad:
     reloc->symbol = NULL;
+    reloc->addend = 0;
     reloc->offset = 0;
     reloc->howto = &reloc_howtos[RELOC_TYPE_IGNORED];
 }

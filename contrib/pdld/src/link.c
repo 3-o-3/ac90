@@ -351,8 +351,14 @@ static void reloc_generic (struct section_part *part,
     /* If explicit addend is provided (ELF RELA),
      * the implicit addend should not be used.
      */
-    if (rel->addend) {
+    if (rel->addend) { 
+	static int k = 0;
         result = rel->addend;
+	if (!k) {
+		k = 1;
+		fprintf(stderr, "FIXME (JML) rel->addend %x\n", result);
+	}
+	result = 0; 
     } else {
         switch (rel->howto->size) {
             case 8:
@@ -495,7 +501,8 @@ static void calculate_section_sizes_and_rvas (void)
         
         section->total_size = 0;
         for (part = section->first_part; part; part = part->next) {
-
+#if 0
+		// FIXME JML
             if (part->next && part->next->alignment > 1) {
                 address_type new_rva;
 
@@ -508,7 +515,7 @@ static void calculate_section_sizes_and_rvas (void)
                     part->content_size = new_rva - rva;
                 }
             }
-            
+#endif       
             part->rva = rva;
             section->total_size += part->content_size;
             rva += part->content_size;
@@ -603,6 +610,10 @@ void link (void)
 
             case LD_OFORMAT_VSE:
                 ld_state->base_address = vse_get_base_address ();
+                break;
+
+            case LD_OFORMAT_ELF:
+                ld_state->base_address = elf_get_base_address ();
                 break;
 
             default:

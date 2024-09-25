@@ -4,7 +4,7 @@ all:
 	cp i386_opc.tbl i386_t.h
 	cc -E i386_t.h -o i386_opc.i 
 	./a.exe i386_opc.i i386_tbl.h
-	cc -o pdas.exe -Ihashtab \
+	cc -m32 -o pdas.exe -Ihashtab -lm \
 hashtab/hashtab.c \
 a_out.c \
 as.c \

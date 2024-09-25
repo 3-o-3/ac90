@@ -1,2 +1,12 @@
 ../build.cmd ../src all
 
+
+all:
+	clang -m32 -nostdlib -o 5.exe ../lib/crt0-linux-386.s main.s b.s
+	./pdas.exe --oformat elf -march=i386 --32 -o s.o ../lib/crt0-linux-386.s
+	./pdas.exe --oformat elf -march=i386 --32 -o m.o main.s
+	./pdas.exe --oformat elf -march=i386 --32 -o b.o b.s
+	./pdld.exe --oformat elf --emit-relocs --entry 0x08049000 -o 4.exe  s.o m.o b.o
+	chmod a+x 4.exe
+	bash -c ' ./4.exe; echo $$? '
+

@@ -8,6 +8,10 @@
  * commercial and non-commercial, without any restrictions, without
  * complying with any conditions and by any means.
  *****************************************************************************/
+#ifdef LITTLE_ENDIAN
+#undef LITTLE_ENDIAN
+#undef BIG_ENDIAN
+#endif
 #define LITTLE_ENDIAN 1
 #define BIG_ENDIAN 0
 

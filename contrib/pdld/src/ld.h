@@ -284,6 +284,7 @@ const struct long_option *coff_get_long_options (void);
 
 /* elf.c */
 address_type elf_get_first_section_rva (void);
+address_type elf_get_base_address (void);
 void elf_write (const char *filename);
 int elf_read (unsigned char *file, size_t file_size, const char *filename);
 
