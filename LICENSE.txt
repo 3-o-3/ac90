@@ -1,21 +1,7 @@
 
-          MMXXIV September 23 PUBLIC DOMAIN by JML
+        This software is dedicated to the public domain.
 
-     The authors and contributors disclaim copyright, patents 
-           and all related rights to this software.
-
- Anyone is free to copy, modify, publish, use, compile, sell, or
- distribute this software, either in source code form or as a
- compiled binary, for any purpose, commercial or non-commercial,
- and by any means.
-
- The authors waive all rights to patents, both currently owned 
- by the authors or acquired in the future, that are necessarily 
- infringed by this software, relating to make, have made, repair,
- use, sell, import, transfer, distribute or configure hardware 
- or software in finished or intermediate form, whether by run, 
- manufacture, assembly, testing, compiling, processing, loading 
- or applying this software or otherwise.
+           See each individual file for terms details.
 
  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES 
